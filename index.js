@@ -17,6 +17,9 @@ const ZALO_SECRET_KEY_2 = "YMXGYUd1sQ6D6B3uHZuG";
 // ⚠️ NÊN đưa vào .env
 const STATIC_OA_ACCESS_TOKEN = "ndtOSHNMRoN7VDrn4DLk8CfvsciVjWLRdrwp3HUbJX2QTvWYIzuiB9e3t30rj3u5aKJNBoUs63khTDilCwC48wbkv7SUmX1-inB2NmJXF5kZBODd1Dz-S8TmW6SIf6bsYLoyMrYrI5Z_7e5MBz1UKVWlbNfGqY8lsphY7M6GBWxaKk1IDeKoKfbynN8jkIHD_dF97bUe8mxNNv4OGvnaFCH1l6nrgmbesWVOIGxn57-WFgieTj997-02loLfqMWg_p-aFr7eJpNa0hW7IlPQ4DWegWHl-caulX6PEZBATncPCRWwBkXWCQSGrdbms0j8z0FBP3kl5KwNMTzxFliMKUGAmd1omWujw1pZ4Mkm5nFGRQ80HhbW4-b9q1f4wsGzwIIH1s7uRmwkLua82OTjEgb7XpHoLt7YceTb4Cbi8G";
 
+// Link Google Sheet (Để gửi data Hito Adventure)
+const GOOGLE_SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzD2kuNV0ZUqQrw9k3OAJU5xjPiQbAME79OwhDtezVnpQ6oCpyNTM8k029lNHhQ6thT/exec";
+
 // =============================
 // 1. GET PHONE
 // =============================
@@ -142,6 +145,32 @@ app.post('/send-oa-message', async (req, res) => {
         });
     }
 });
+
+// =============================
+// 4. HITO ADVENTURE - SUBMIT (Đoạn mới thêm vào)
+// =============================
+app.post('/api/hito/submit', async (req, res) => {
+    try {
+        const data = req.body;
+        console.log("-------------------------------------------");
+        console.log("🎮 [HITO ADVENTURE] NHẬN DATA MỚI:");
+        console.log(`👤 Tên: ${data.full_name}`);
+        console.log(`📞 SĐT: ${data.phone}`);
+        console.log(`🏆 Điểm: ${data.score} | 🎁 Quà: ${data.gift_name}`);
+        console.log("-------------------------------------------");
+
+        // Gửi sang Google Sheet (GAS sẽ tự đẩy sang Bizfly CRM)
+        axios.post(GOOGLE_SHEET_WEBHOOK_URL, data)
+            .then(() => console.log("✅ Đã đẩy sang Google Sheet thành công."))
+            .catch(err => console.error("❌ Lỗi Sheet:", err.message));
+
+        return res.json({ success: true, message: "Backend đã nhận và đang xử lý" });
+    } catch (err) {
+        console.error("🔥 Lỗi Route Submit:", err.message);
+        return res.status(500).json({ error: err.message });
+    }
+});
+
 
 // =============================
 app.listen(PORT, () => {
