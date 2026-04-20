@@ -13,6 +13,7 @@ app.use(express.json());
 // =============================
 const ZALO_SECRET_KEY_1 = "08vwXY668Oh4P42I7qC8";
 const ZALO_SECRET_KEY_2 = "YMXGYUd1sQ6D6B3uHZuG";
+const ZALO_DV_ID = "77HL8lDBUm8qiNi2D3RT";
 
 // ⚠️ NÊN đưa vào .env
 const STATIC_OA_ACCESS_TOKEN = "ndtOSHNMRoN7VDrn4DLk8CfvsciVjWLRdrwp3HUbJX2QTvWYIzuiB9e3t30rj3u5aKJNBoUs63khTDilCwC48wbkv7SUmX1-inB2NmJXF5kZBODd1Dz-S8TmW6SIf6bsYLoyMrYrI5Z_7e5MBz1UKVWlbNfGqY8lsphY7M6GBWxaKk1IDeKoKfbynN8jkIHD_dF97bUe8mxNNv4OGvnaFCH1l6nrgmbesWVOIGxn57-WFgieTj997-02loLfqMWg_p-aFr7eJpNa0hW7IlPQ4DWegWHl-caulX6PEZBATncPCRWwBkXWCQSGrdbms0j8z0FBP3kl5KwNMTzxFliMKUGAmd1omWujw1pZ4Mkm5nFGRQ80HhbW4-b9q1f4wsGzwIIH1s7uRmwkLua82OTjEgb7XpHoLt7YceTb4Cbi8G";
@@ -35,7 +36,8 @@ app.post('/get-phone', async (req, res) => {
             headers: {
                 access_token: accessToken,
                 code: code,
-                secret_key: ZALO_SECRET_KEY_1
+                secret_key: ZALO_DV_ID
+                
             }
         });
 
