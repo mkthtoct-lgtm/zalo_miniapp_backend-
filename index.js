@@ -11,16 +11,16 @@ app.use(express.json());
 // =============================
 // CONFIG
 // =============================
-const ZALO_SECRET_KEY_1 = "08vwXY668Oh4P42I7qC8";
-const ZALO_SECRET_KEY_2 = "YMXGYUd1sQ6D6B3uHZuG";
-const ZALO_DV_ID = "77HL8lDBUm8qiNi2D3RT";
+const ZALO_SECRET_KEY_1 = "08vwXY668Oh4P42I7qC8";//HT Đại Dương Đánh Giá Năng Lực Ngoại Ngữ(Ko đc xoá)
+const ZALO_SECRET_KEY_2 = "YMXGYUd1sQ6D6B3uHZuG";//HT Đại Dương Trắc Nghiệm Hướng Nghiệp(ko đc xoá)
+const ZALO_DV_ID = "77HL8lDBUm8qiNi2D3RT";//HT Tổng hợp(ko đc xoá)
 
 // ⚠️ NÊN đưa vào .env
 const STATIC_OA_ACCESS_TOKEN = "ndtOSHNMRoN7VDrn4DLk8CfvsciVjWLRdrwp3HUbJX2QTvWYIzuiB9e3t30rj3u5aKJNBoUs63khTDilCwC48wbkv7SUmX1-inB2NmJXF5kZBODd1Dz-S8TmW6SIf6bsYLoyMrYrI5Z_7e5MBz1UKVWlbNfGqY8lsphY7M6GBWxaKk1IDeKoKfbynN8jkIHD_dF97bUe8mxNNv4OGvnaFCH1l6nrgmbesWVOIGxn57-WFgieTj997-02loLfqMWg_p-aFr7eJpNa0hW7IlPQ4DWegWHl-caulX6PEZBATncPCRWwBkXWCQSGrdbms0j8z0FBP3kl5KwNMTzxFliMKUGAmd1omWujw1pZ4Mkm5nFGRQ80HhbW4-b9q1f4wsGzwIIH1s7uRmwkLua82OTjEgb7XpHoLt7YceTb4Cbi8G";
 
 // Link Google Sheet (Để gửi data Hito Adventure)
-const GOOGLE_SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzD2kuNV0ZUqQrw9k3OAJU5xjPiQbAME79OwhDtezVnpQ6oCpyNTM8k029lNHhQ6thT/exec";
-
+// const GOOGLE_SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzD2kuNV0ZUqQrw9k3OAJU5xjPiQbAME79OwhDtezVnpQ6oCpyNTM8k029lNHhQ6thT/exec";
+const GOOGLE_SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbzu3wXv7Le7XgtNnie9fjFzVNbGPMmmLANaR8rGKYUaHlJa-87-egf2FQKJChi5-r2H/exec";
 // =============================
 // 1. GET PHONE
 // =============================
@@ -173,6 +173,35 @@ app.post('/api/hito/submit', async (req, res) => {
     }
 });
 
+// =============================
+// 5. VISA TEST - SUBMIT FULL PROFILE
+// =============================
+app.post('/api/visa/submit-full', async (req, res) => {
+    try {
+        const data = req.body;
+        
+        console.log("-------------------------------------------");
+        console.log("✈️ [VISA TEST] NHẬN HỒ SƠ TƯ VẤN:");
+        console.log(`👤 Khách: ${data.fullName || data.full_name}`);
+        console.log(`📞 SĐT: ${data.phone}`);
+        console.log("-------------------------------------------");
+
+        // Gửi sang Google Sheet (Cùng URL Webhook nhưng thêm sheet_name để GAS phân loại)
+        const payload = {
+            ...data,
+            sheet_name: "VISA_DATA" // Đánh dấu để Apps Script chèn vào tab Visa
+        };
+
+        axios.post(GOOGLE_SHEET_WEBHOOK_URL, payload)
+            .then(() => console.log("✅ Đã lưu vào Google Sheet (Tab VISA_DATA)"))
+            .catch(err => console.error("❌ Lỗi gửi Sheet Visa:", err.message));
+
+        return res.json({ success: true, message: "Hồ sơ Visa đã được tiếp nhận." });
+    } catch (err) {
+        console.error("🔥 Lỗi Route Visa Submit:", err.message);
+        return res.status(500).json({ error: err.message });
+    }
+});
 
 // =============================
 app.listen(PORT, () => {
