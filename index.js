@@ -180,21 +180,24 @@ app.post('/api/visa/submit-full', async (req, res) => {
     try {
         const data = req.body;
         
+        // Log để kiểm tra xem dữ liệu thực tế bay lên là gì
         console.log("-------------------------------------------");
-        console.log("✈️ [VISA TEST] NHẬN HỒ SƠ TƯ VẤN:");
-        console.log(`👤 Khách: ${data.fullName || data.full_name}`);
-        console.log(`📞 SĐT: ${data.phone}`);
-        console.log("-------------------------------------------");
+        console.log("✈️ [VISA TEST] NHẬN HỒ SƠ TƯ VẤN:", JSON.stringify(data));
+        
+        // Kiểm tra dữ liệu bắt buộc
+        if (!data.phone) {
+            return res.status(400).json({ success: false, message: "Thiếu số điện thoại" });
+        }
 
-        // Gửi sang Google Sheet (Cùng URL Webhook nhưng thêm sheet_name để GAS phân loại)
         const payload = {
             ...data,
-            sheet_name: "VISA_DATA" // Đánh dấu để Apps Script chèn vào tab Visa
+            sheet_name: "VISA_DATA" 
         };
 
+        // Gửi sang Google Sheet
         axios.post(GOOGLE_SHEET_WEBHOOK_URL, payload)
-            .then(() => console.log("✅ Đã lưu vào Google Sheet (Tab VISA_DATA)"))
-            .catch(err => console.error("❌ Lỗi gửi Sheet Visa:", err.message));
+            .then(() => console.log("✅ Đã lưu vào Google Sheet"))
+            .catch(err => console.error("❌ Lỗi Sheet:", err.message));
 
         return res.json({ success: true, message: "Hồ sơ Visa đã được tiếp nhận." });
     } catch (err) {
