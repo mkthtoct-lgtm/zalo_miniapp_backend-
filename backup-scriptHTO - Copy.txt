@@ -1,0 +1,94 @@
+function doPost(e) {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) return errorResponse("Server Busy");
+
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var p = JSON.parse(e.postData.contents);
+    
+    // --- PHÂN LOẠI DỮ LIỆU ---
+    // Nếu FE gửi sheet_name hoặc dựa vào cấu trúc để đoán
+    var isVisa = p.visaType || p.country || (p.sheet_name === "VISA_DATA");
+    var sheetName = isVisa ? "VISA_DATA" : "HITO_DATA";
+    
+    var sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      sheet = ss.insertSheet(sheetName);
+      // Tạo tiêu đề cột nếu là sheet mới
+      if (isVisa) {
+        sheet.appendRow(["Thời gian", "Họ Tên", "SĐT", "Email", "Ngày sinh", "Quốc gia", "Loại Visa", "Điểm", "Xếp hạng"]);
+      } else {
+        sheet.appendRow(["Thời gian", "Loại", "Họ Tên", "SĐT", "Email", "Ngày sinh", "Điểm", "Quà"]);
+      }
+    }
+
+    var time = Utilities.formatDate(new Date(), "GMT+7", "dd/MM/yyyy HH:mm:ss");
+
+    if (isVisa) {
+      // --- LOGIC CHO VISA TEST ---
+      var name = p.fullName || p.full_name || "Khách Visa";
+      var phone = p.phone || "";
+      var email = p.email || "";
+      var birthday = p.birthDate || p.birth_date || "";
+      var country = p.country || "";
+      var vType = p.visaType || "";
+      var score = p.totalScore || "0";
+      var rating = p.rating || "";
+
+      sheet.appendRow([time, name, phone, email, birthday, country, vType, score, rating]);
+
+      // Gửi Bizfly cho Visa
+      sendToBizfly({
+        "fullname": name,
+        "phone": phone,
+        "qr_code": "VISA_TEST_" + country.toUpperCase(),
+        "language": `Visa: ${vType} | Điểm: ${score} | Xếp hạng: ${rating} | NS: ${birthday}`
+      });
+
+    } else {
+      // --- LOGIC CHO HITO GAME (Hito Adventure) ---
+      var name = p.full_name || "Khách Game";
+      var phone = p.phone || "";
+      var email = p.email || "";
+      var score = p.score || "0";
+      var birthday = p.birth_date || p.birth_date || "";
+      var gift = p.gift_name || "";
+
+      sheet.appendRow([time, "HITO_GAME", name, phone, email, birthday, score, gift]);
+
+      sendToBizfly({
+        "fullname": name,
+        "phone": phone,
+        "qr_code": "HITO_ADVENTURE",
+        "language": "Điểm: " + score + " | Quà: " + gift + " | NS: " + birthday
+      });
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({"result":"success", "sheet": sheetName})).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return errorResponse(err.toString());
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function sendToBizfly(data) {
+  var props = PropertiesService.getScriptProperties();
+  var webhookUrl = props.getProperty("weburl"); 
+  if (!webhookUrl) {
+    console.warn("Chưa cấu hình weburl trong Property Service");
+    return;
+  }
+
+  var options = {
+    "method": "post",
+    "contentType": "application/json",
+    "payload": JSON.stringify(data),
+    "muteHttpExceptions": true
+  };
+  UrlFetchApp.fetch(webhookUrl, options);
+}
+
+function errorResponse(msg) {
+  return ContentService.createTextOutput(JSON.stringify({"result":"error","message":msg})).setMimeType(ContentService.MimeType.JSON);
+}
