@@ -1,0 +1,35 @@
+services:
+  # ─── MongoDB ───
+  mongo:
+    image: mongo:7
+    container_name: zalo-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Zalo Backend ───
+  app:
+    image: ghcr.io/mkthtoct-lgtm/zalo_miniapp_backend-:latest
+    container_name: zalo-backend
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    env_file:
+      - .env
+    environment:
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+      # Override MongoDB URI to use container network
+      - MONGODB_URI=mongodb://mongo:27017
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo_data:

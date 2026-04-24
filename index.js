@@ -33,6 +33,7 @@ app.get("/health", (req, res) => {
   return res.json({
     success: true,
     service: "zalo-backend",
+    version: process.env.COMMIT_SHA || "local",
     time: new Date().toISOString(),
     integrations: {
       mongodb: Boolean(process.env.MONGODB_URI),

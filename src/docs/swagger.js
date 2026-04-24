@@ -218,7 +218,7 @@ function createSwaggerSpec(serverUrl) {
             leadId: { type: "string", nullable: true, example: "lead_123" },
             staffId: { type: "string", nullable: true, example: "NV01" },
             staffName: { type: "string", nullable: true, example: "Tư vấn viên A" },
-            studentName: { type: "string", nullable: true, example: "Nguyễn Minh Anh" },
+            studentName: { type: "string", nullable: true, example: "Phan Đức Toàn" },
           },
         },
         ConsultationCompletedResponse: {
