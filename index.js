@@ -32,6 +32,25 @@ const ZALO_DV_ID = process.env.ZALO_DV_ID || "";
 const STATIC_OA_ACCESS_TOKEN = process.env.STATIC_OA_ACCESS_TOKEN || "";
 const GOOGLE_SHEET_WEBHOOK_URL = process.env.GOOGLE_SHEET_WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwpGq4_qfHwML2O2YbKmJnZj-8pxy03EbNIgMgJPL6c5A815AzrLxXPbdeTqWR9p6Lb/exec";
 
+// =================================================================
+// 🛡️ HÀM BẢO VỆ: "MÁY QUÉT NÓI DỐI" TỪ GOOGLE
+// =================================================================
+async function pushToGoogleSheet(payload) {
+  const response = await axios.post(GOOGLE_SHEET_WEBHOOK_URL, payload);
+  
+  // Bắt lỗi 1: Nếu Google trả về mã HTML (Trang yêu cầu đăng nhập)
+  if (typeof response.data === 'string' && response.data.toLowerCase().includes('<html')) {
+    throw new Error("Lỗi phân quyền Google Sheet. Bạn phải Deploy Apps Script với quyền 'Who has access: Anyone'.");
+  }
+  
+  // Bắt lỗi 2: Nếu Code.gs chạy sập và tự sinh ra json báo lỗi
+  if (response.data && response.data.result === "error") {
+    throw new Error("Lỗi từ mã Google Apps Script: " + response.data.message);
+  }
+
+  return response.data;
+}
+
 app.get("/health", (req, res) => {
   return res.json({
     success: true,
@@ -120,20 +139,16 @@ app.post("/send-oa-message", async (req, res) => {
   }
 });
 
-// =================================================================
-// ĐÃ SỬA: Ép luồng cũ /api/hito/submit cũng phải chui vào KHAO_SAT_HITO_V1
-// =================================================================
 app.post("/api/hito/submit", async (req, res) => {
   try {
     const data = req.body;
-    // Tự động gắn mác nếu frontend quên
     if (!data.sheet_name) {
       data.sheet_name = "KHAO_SAT_HITO_V1";
     }
-    await axios.post(GOOGLE_SHEET_WEBHOOK_URL, data);
+    await pushToGoogleSheet(data);
     return res.json({ success: true, message: "Backend đã nhận và đang xử lý" });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -145,10 +160,10 @@ app.post("/api/visa/submit-full", async (req, res) => {
     }
 
     const payload = { ...data, sheet_name: "VISA_DATA" };
-    await axios.post(GOOGLE_SHEET_WEBHOOK_URL, payload);
+    await pushToGoogleSheet(payload);
     return res.json({ success: true, message: "Hồ sơ Visa đã được tiếp nhận." });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -195,12 +210,12 @@ app.post("/api/khao-sat/submit", async (req, res) => {
       sheet_name: "KHAO_SAT_HITO_V1",
     };
 
-    await axios.post(GOOGLE_SHEET_WEBHOOK_URL, payloadToSheet);
+    await pushToGoogleSheet(payloadToSheet);
 
     return res.json({ success: true, message: "Hồ sơ Khảo sát đã được tiếp nhận thành công." });
   } catch (err) {
     console.error("❌ Lỗi khi đẩy Khảo Sát lên Google Sheet:", err.message);
-    return res.status(500).json({ success: false, error: err.message, message: "Lỗi kết nối tới Google Sheet" });
+    return res.status(500).json({ success: false, error: err.message, message: err.message });
   }
 });
 
