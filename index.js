@@ -17,7 +17,12 @@ const repository = createRepository();
 const crmService = createBizCrmService();
 const automationService = createAutomationService();
 
-app.use(cors());
+// Mở rộng CORS để tránh Zalo chặn preflight
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'access_token', 'code', 'secret_key']
+}));
 app.use(express.json());
 registerSwagger(app);
 
@@ -25,7 +30,7 @@ const ZALO_SECRET_KEY_1 = process.env.ZALO_SECRET_KEY_1 || "";
 const ZALO_SECRET_KEY_2 = process.env.ZALO_SECRET_KEY_2 || "";
 const ZALO_DV_ID = process.env.ZALO_DV_ID || "";
 const STATIC_OA_ACCESS_TOKEN = process.env.STATIC_OA_ACCESS_TOKEN || "";
-const GOOGLE_SHEET_WEBHOOK_URL = process.env.GOOGLE_SHEET_WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbx3338E4GqYvfisTHl0PBIdpuYeMXwjs6M-vzXDNIpBK4F4PurrBCusHV18_qZwk2M/exec";
+const GOOGLE_SHEET_WEBHOOK_URL = process.env.GOOGLE_SHEET_WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwpGq4_qfHwML2O2YbKmJnZj-8pxy03EbNIgMgJPL6c5A815AzrLxXPbdeTqWR9p6Lb/exec";
 
 app.get("/health", (req, res) => {
   return res.json({
@@ -115,10 +120,17 @@ app.post("/send-oa-message", async (req, res) => {
   }
 });
 
+// =================================================================
+// ĐÃ SỬA: Ép luồng cũ /api/hito/submit cũng phải chui vào KHAO_SAT_HITO_V1
+// =================================================================
 app.post("/api/hito/submit", async (req, res) => {
   try {
     const data = req.body;
-    axios.post(GOOGLE_SHEET_WEBHOOK_URL, data).catch((err) => console.error("Sheet error:", err.message));
+    // Tự động gắn mác nếu frontend quên
+    if (!data.sheet_name) {
+      data.sheet_name = "KHAO_SAT_HITO_V1";
+    }
+    await axios.post(GOOGLE_SHEET_WEBHOOK_URL, data);
     return res.json({ success: true, message: "Backend đã nhận và đang xử lý" });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -133,7 +145,7 @@ app.post("/api/visa/submit-full", async (req, res) => {
     }
 
     const payload = { ...data, sheet_name: "VISA_DATA" };
-    axios.post(GOOGLE_SHEET_WEBHOOK_URL, payload).catch((err) => console.error("Sheet error:", err.message));
+    await axios.post(GOOGLE_SHEET_WEBHOOK_URL, payload);
     return res.json({ success: true, message: "Hồ sơ Visa đã được tiếp nhận." });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -170,9 +182,6 @@ app.post("/user-info", async (req, res) => {
   }
 });
 
-// =================================================================
-// CẬP NHẬT: API XỬ LÝ KHẢO SÁT HITO CÓ GẮN AWAIT BẮT LỖI
-// =================================================================
 app.post("/api/khao-sat/submit", async (req, res) => {
   try {
     const data = req.body;
@@ -186,14 +195,13 @@ app.post("/api/khao-sat/submit", async (req, res) => {
       sheet_name: "KHAO_SAT_HITO_V1",
     };
 
-    // ĐÃ THÊM AWAIT VÀ CHUYỂN VÀO TRY-CATCH
     await axios.post(GOOGLE_SHEET_WEBHOOK_URL, payloadToSheet);
 
     return res.json({ success: true, message: "Hồ sơ Khảo sát đã được tiếp nhận thành công." });
   } catch (err) {
     console.error("❌ Lỗi khi đẩy Khảo Sát lên Google Sheet:", err.message);
-    // Báo lỗi 500 thẳng ra Postman
     return res.status(500).json({ success: false, error: err.message, message: "Lỗi kết nối tới Google Sheet" });
   }
 });
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
