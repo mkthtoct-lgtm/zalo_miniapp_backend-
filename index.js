@@ -27,7 +27,7 @@ const ZALO_DV_ID = process.env.ZALO_DV_ID || "";
 const STATIC_OA_ACCESS_TOKEN =
   process.env.STATIC_OA_ACCESS_TOKEN || "";
 const GOOGLE_SHEET_WEBHOOK_URL =
-  process.env.GOOGLE_SHEET_WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbyYa1-Gb4VwVe_-0Ufosx4TkK6OyMK3PEon9cZKx8rKk5a7G6ZJxx0b-yWwKUYg5mHK/exec";
+  process.env.GOOGLE_SHEET_WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbx3338E4GqYvfisTHl0PBIdpuYeMXwjs6M-vzXDNIpBK4F4PurrBCusHV18_qZwk2M/exec";
 
 app.get("/health", (req, res) => {
   return res.json({
