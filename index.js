@@ -24,10 +24,8 @@ registerSwagger(app);
 const ZALO_SECRET_KEY_1 = process.env.ZALO_SECRET_KEY_1 || "";
 const ZALO_SECRET_KEY_2 = process.env.ZALO_SECRET_KEY_2 || "";
 const ZALO_DV_ID = process.env.ZALO_DV_ID || "";
-const STATIC_OA_ACCESS_TOKEN =
-  process.env.STATIC_OA_ACCESS_TOKEN || "";
-const GOOGLE_SHEET_WEBHOOK_URL =
-  process.env.GOOGLE_SHEET_WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbx3338E4GqYvfisTHl0PBIdpuYeMXwjs6M-vzXDNIpBK4F4PurrBCusHV18_qZwk2M/exec";
+const STATIC_OA_ACCESS_TOKEN = process.env.STATIC_OA_ACCESS_TOKEN || "";
+const GOOGLE_SHEET_WEBHOOK_URL = process.env.GOOGLE_SHEET_WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbx3338E4GqYvfisTHl0PBIdpuYeMXwjs6M-vzXDNIpBK4F4PurrBCusHV18_qZwk2M/exec";
 
 app.get("/health", (req, res) => {
   return res.json({
@@ -171,48 +169,31 @@ app.post("/user-info", async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 });
+
 // =================================================================
-// THÊM MỚI: API XỬ LÝ DỮ LIỆU KHẢO SÁT HITO TỪ FRONTEND
+// CẬP NHẬT: API XỬ LÝ KHẢO SÁT HITO CÓ GẮN AWAIT BẮT LỖI
 // =================================================================
 app.post("/api/khao-sat/submit", async (req, res) => {
   try {
     const data = req.body;
 
-    // 1. Kiểm tra SĐT (Bắt buộc phải có để CRM nhận diện Lead)
     if (!data.phone) {
       return res.status(400).json({ success: false, message: "Thiếu số điện thoại khách hàng" });
     }
 
-    // 2. Gắn thêm cờ sheet_name để Google Apps Script biết đây là data Khảo sát
     const payloadToSheet = {
       ...data,
       sheet_name: "KHAO_SAT_HITO_V1",
     };
 
-    // 3. Đẩy lên Google Sheet Webhook.
-    // LƯU Ý: Vì trong GAS đã có hàm sendToBizfly, nên khi gọi dòng này,
-    // dữ liệu sẽ TỰ ĐỘNG được lưu vào Sheet VÀ bắn thẳng sang BizCRM.
-    axios.post(GOOGLE_SHEET_WEBHOOK_URL, payloadToSheet)
-      .catch((err) => console.error("Lỗi khi đẩy Khảo Sát lên Google Sheet:", err.message));
-
-    // NẾU BẠN MUỐN TẮT TÍNH NĂNG ĐẨY CRM TỪ GAS MÀ DÙNG NODEJS ĐỂ ĐẨY:
-    // Mở comment đoạn code dưới đây (và nhớ xóa hàm sendToBizfly trong GAS để tránh tạo Lead 2 lần)
-    /*
-    if (crmService && crmService.enabled) {
-      const crmPayload = {
-         fullname: data.name || data.fullName,
-         phone: data.phone,
-         email: data.email,
-         qr_code: "KHAO_SAT_HITO_V1",
-         language: `Tổ hợp: ${data.selectedBlock} | Hướng đi: ${data.pathway} | Ngành: ${data.major}`
-      };
-      crmService.createLead(crmPayload).catch(err => console.error("Lỗi đẩy BizCRM từ Node:", err.message));
-    }
-    */
+    // ĐÃ THÊM AWAIT VÀ CHUYỂN VÀO TRY-CATCH
+    await axios.post(GOOGLE_SHEET_WEBHOOK_URL, payloadToSheet);
 
     return res.json({ success: true, message: "Hồ sơ Khảo sát đã được tiếp nhận thành công." });
   } catch (err) {
-    return res.status(500).json({ success: false, error: err.message });
+    console.error("❌ Lỗi khi đẩy Khảo Sát lên Google Sheet:", err.message);
+    // Báo lỗi 500 thẳng ra Postman
+    return res.status(500).json({ success: false, error: err.message, message: "Lỗi kết nối tới Google Sheet" });
   }
 });
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
