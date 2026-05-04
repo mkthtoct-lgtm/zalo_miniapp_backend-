@@ -604,7 +604,7 @@ function createNumerologyRouter(repository, services = {}) {
       if (!submission) {
         return res.status(404).json({
           success: false,
-          message: "Khong tim thay submission",
+          message: "Không tìm thấy submission",
         });
       }
 
@@ -612,14 +612,14 @@ function createNumerologyRouter(repository, services = {}) {
       if (!isValidEmail(recipientEmail)) {
         return res.status(400).json({
           success: false,
-          message: "Email khong hop le",
+          message: "Email không hợp lệ",
         });
       }
 
       if (!emailService?.enabled) {
         return res.status(503).json({
           success: false,
-          message: "Dich vu email chua duoc cau hinh SMTP",
+          message: "Dịch vụ email chưa được cấu hình SMTP",
         });
       }
 

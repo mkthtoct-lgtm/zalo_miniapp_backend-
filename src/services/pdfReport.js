@@ -12,6 +12,16 @@ function getCeoImageBase64() {
   }
 }
 
+function getQrImageBase64() {
+  try {
+    const qrPath = path.join(__dirname, "..", "public", "images", "qr-zalo.jpg");
+    const base64 = fs.readFileSync(qrPath).toString("base64");
+    return `data:image/jpeg;base64,${base64}`;
+  } catch (error) {
+    return "";
+  }
+}
+
 function slugifyName(value) {
   return (
     String(value || "Khach-hang")
@@ -97,6 +107,7 @@ function buildHtml(submission) {
   const location = [input.district, input.province].filter(Boolean).join(", ");
   const fullName = input.fullName || "Ten_Hoc_Sinh";
   const ceoImgSrc = getCeoImageBase64();
+  const qrImgSrc = getQrImageBase64();
   const lifePath = core.lifePath || "";
   const destiny = core.destiny || "";
   const soulUrge = core.soulUrge || "";
@@ -175,7 +186,7 @@ function buildHtml(submission) {
 
       <section class="page p-16 flex flex-col justify-center">
         <div class="max-w-2xl">
-          <h2 class="text-blue-900 text-3xl font-bold mb-10 uppercase border-l-4 border-gold pl-6">Thông điệp từ HTO & Triết lý Sư Tử Te</h2>
+          <h2 class="text-blue-900 text-3xl font-bold mb-10 uppercase border-l-4 border-gold pl-6">Thông điệp từ HTO & Triết lý Sự Tử Tế</h2>
           <div class="text-slate-700 leading-relaxed space-y-6 text-lg">
             <p class="italic font-semibold text-blue-800 text-2xl">"Chúng tôi không vẽ màu hồng, chúng tôi thiết kế lộ trình thực chất."</p>
             <p>Chào ${escapeHtml(fullName)}, HTO tin rằng mỗi cá nhân là một thực thể độc lập với những thế mạnh riêng biệt cần được khai phá đúng cách.</p>
@@ -339,7 +350,7 @@ function buildHtml(submission) {
           </div>
           <div class="text-right">
             <div class="inline-block p-2 bg-white border border-slate-200">
-              <div class="w-24 h-24 bg-slate-100 flex items-center justify-center text-[8px] text-center p-2 uppercase">Quét Zalo <br> Nhận tư vấn</div>
+              <img src="${qrImgSrc}" alt="QR Zalo" style="width: 96px; height: 96px; object-fit: contain;">
             </div>
           </div>
         </div>
