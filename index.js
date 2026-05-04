@@ -30,8 +30,7 @@ const ZALO_SECRET_KEY_1 = process.env.ZALO_SECRET_KEY_1 || "";
 const ZALO_SECRET_KEY_2 = process.env.ZALO_SECRET_KEY_2 || "";
 const ZALO_DV_ID = process.env.ZALO_DV_ID || "";
 const STATIC_OA_ACCESS_TOKEN = process.env.STATIC_OA_ACCESS_TOKEN || "";
-const GOOGLE_SHEET_WEBHOOK_URL = process.env.GOOGLE_SHEET_WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbwpGq4_qfHwML2O2YbKmJnZj-8pxy03EbNIgMgJPL6c5A815AzrLxXPbdeTqWR9p6Lb/exec";
-
+const GOOGLE_SHEET_WEBHOOK_URL = process.env.GOOGLE_SHEET_WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbz67dX1jUg3Knruf_IScqJAaWR83U-JAA-KypzKyKmLQNVrVBy1pHmwgr7LxoSQv9K1/exec";
 // =================================================================
 // 🛡️ HÀM BẢO VỆ: "MÁY QUÉT NÓI DỐI" TỪ GOOGLE
 // =================================================================
