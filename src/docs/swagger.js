@@ -260,6 +260,42 @@ function createSwaggerSpec(serverUrl) {
             generatedAt: { type: "string", format: "date-time" },
           },
         },
+        NumerologyEmailReportRequest: {
+          type: "object",
+          properties: {
+            email: {
+              type: "string",
+              format: "email",
+              description: "Optional override. Neu bo trong, backend dung email trong submission.",
+              example: "pductoandev@gmail.com",
+            },
+          },
+        },
+        NumerologyEmailReportResponse: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", example: true },
+            data: {
+              type: "object",
+              properties: {
+                submissionId: { type: "string", example: "4a524918-4839-4a74-8820-5c4503c2d600" },
+                email: { type: "string", example: "pductoandev@gmail.com" },
+                filename: { type: "string", example: "Bao-cao-HTO-Phan-Duc-Toan.pdf" },
+                mail: {
+                  type: "object",
+                  properties: {
+                    messageId: { type: "string", nullable: true },
+                    accepted: { type: "array", items: { type: "string" } },
+                    rejected: { type: "array", items: { type: "string" } },
+                    response: { type: "string", nullable: true },
+                  },
+                },
+                pdfPersistence: { $ref: "#/components/schemas/PersistenceResult" },
+                automationLog: { $ref: "#/components/schemas/PersistenceResult" },
+              },
+            },
+          },
+        },
         DebugWebhookPayloadRequest: {
           type: "object",
           required: ["type"],
@@ -486,6 +522,51 @@ function createSwaggerSpec(serverUrl) {
             },
             404: {
               description: "Khong tim thay submission",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/GenericError" } } },
+            },
+          },
+        },
+      },
+      "/api/numerology/report/{submissionId}/email": {
+        post: {
+          tags: ["Numerology"],
+          summary: "Gui bao cao PDF numerology qua email",
+          parameters: [
+            {
+              name: "submissionId",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+              example: "4a524918-4839-4a74-8820-5c4503c2d600",
+            },
+          ],
+          requestBody: {
+            required: false,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/NumerologyEmailReportRequest" },
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: "Da tao PDF va gui email thanh cong",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/NumerologyEmailReportResponse" },
+                },
+              },
+            },
+            400: {
+              description: "Email khong hop le",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/GenericError" } } },
+            },
+            404: {
+              description: "Khong tim thay submission",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/GenericError" } } },
+            },
+            503: {
+              description: "SMTP chua duoc cau hinh",
               content: { "application/json": { schema: { $ref: "#/components/schemas/GenericError" } } },
             },
           },

@@ -8,6 +8,7 @@ const { createNumerologyRouter } = require("./src/numerology/routes");
 const { registerSwagger } = require("./src/docs/swagger");
 const { createBizCrmService } = require("./src/services/bizCrm");
 const { createAutomationService } = require("./src/services/automation");
+const { createEmailService } = require("./src/services/email");
 
 loadEnvFile();
 
@@ -16,6 +17,7 @@ const PORT = process.env.PORT || 3003;
 const repository = createRepository();
 const crmService = createBizCrmService();
 const automationService = createAutomationService();
+const emailService = createEmailService();
 
 // Mở rộng CORS để tránh Zalo chặn preflight
 app.use(cors({
@@ -59,11 +61,12 @@ app.get("/health", (req, res) => {
     integrations: {
       mongodb: Boolean(process.env.MONGODB_URI),
       googleSheetWebhook: crmService.enabled,
+      email: emailService.enabled,
     },
   });
 });
 
-app.use("/api/numerology", createNumerologyRouter(repository, { crmService, automationService }));
+app.use("/api/numerology", createNumerologyRouter(repository, { crmService, automationService, emailService }));
 
 app.post("/get-phone", async (req, res) => {
   const { accessToken, code } = req.body;

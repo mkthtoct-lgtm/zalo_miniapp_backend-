@@ -126,6 +126,26 @@ function validateSubmission(body) {
   return null;
 }
 
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
+async function persistReportPdf(repository, submissionId, report, pdfInfo = {}) {
+  if (!repository?.updateSubmissionPdf) {
+    return null;
+  }
+
+  return repository.updateSubmissionPdf(submissionId, {
+    status: "generated",
+    filename: report.filename,
+    contentType: report.contentType,
+    sizeInBytes: report.buffer.length,
+    pageCount: report.pageCount,
+    generatedAt: new Date().toISOString(),
+    ...pdfInfo,
+  });
+}
+
 /**
  * Factory function to create the Express router for numerology endpoints.
  * Injects necessary dependencies like the database repository and external services.
@@ -138,6 +158,7 @@ function createNumerologyRouter(repository, services = {}) {
   const router = express.Router();
   const crmService = services.crmService;
   const automationService = services.automationService;
+  const emailService = services.emailService;
 
   /**
    * GET /meta
@@ -570,6 +591,87 @@ function createNumerologyRouter(repository, services = {}) {
   });
 
   /**
+   * POST /report/:submissionId/email
+   * Generates a personalized PDF report and sends it to the submission email.
+   */
+  router.post("/report/:submissionId/email", async (req, res) => {
+    try {
+      const { submissionId } = req.params;
+      const submission = repository?.getSubmissionById
+        ? await repository.getSubmissionById(submissionId)
+        : null;
+
+      if (!submission) {
+        return res.status(404).json({
+          success: false,
+          message: "Khong tim thay submission",
+        });
+      }
+
+      const recipientEmail = String(req.body?.email || submission.input?.email || "").trim();
+      if (!isValidEmail(recipientEmail)) {
+        return res.status(400).json({
+          success: false,
+          message: "Email khong hop le",
+        });
+      }
+
+      if (!emailService?.enabled) {
+        return res.status(503).json({
+          success: false,
+          message: "Dich vu email chua duoc cau hinh SMTP",
+        });
+      }
+
+      const report = await generateNumerologyPdf({ submission });
+      const mailResult = await emailService.sendNumerologyReport({
+        submission,
+        report,
+        to: recipientEmail,
+      });
+
+      const pdfPersistence = await persistReportPdf(repository, submissionId, report, {
+        status: "sent_to_email",
+        email: recipientEmail,
+        messageId: mailResult.messageId,
+        emailedAt: new Date().toISOString(),
+      });
+
+      const automationLog = await persistAutomationEvent(repository, {
+        type: "pdf_email_sent",
+        submissionId,
+        payload: {
+          email: recipientEmail,
+          filename: report.filename,
+          sizeInBytes: report.buffer.length,
+          pageCount: report.pageCount,
+        },
+        result: {
+          mail: mailResult,
+          pdf: pdfPersistence,
+        },
+      });
+
+      return res.json({
+        success: true,
+        data: {
+          submissionId,
+          email: recipientEmail,
+          filename: report.filename,
+          mail: mailResult,
+          pdfPersistence,
+          automationLog,
+        },
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  });
+
+  /**
    * GET /report/:submissionId.pdf
    * Generates and returns a personalized PDF report for a given submission.
    * Updates the submission record with PDF metadata upon successful generation.
@@ -590,17 +692,7 @@ function createNumerologyRouter(repository, services = {}) {
 
       const report = await generateNumerologyPdf({ submission });
 
-      const pdfPersistence = repository?.updateSubmissionPdf
-        ? await repository.updateSubmissionPdf(submissionId, {
-          status: "generated",
-          filename: report.filename,
-          contentType: report.contentType,
-          sizeInBytes: report.buffer.length,
-          pageCount: report.pageCount,
-          generatedAt: new Date().toISOString(),
-        })
-        : null;
-
+      const pdfPersistence = await persistReportPdf(repository, submissionId, report);
       await persistAutomationEvent(repository, {
         type: "pdf_generated",
         submissionId,
