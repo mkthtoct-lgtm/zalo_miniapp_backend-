@@ -32,18 +32,18 @@ const ZALO_SECRET_KEY_1 = process.env.ZALO_SECRET_KEY_1 || "";
 const ZALO_SECRET_KEY_2 = process.env.ZALO_SECRET_KEY_2 || "";
 const ZALO_DV_ID = process.env.ZALO_DV_ID || "";
 const STATIC_OA_ACCESS_TOKEN = process.env.STATIC_OA_ACCESS_TOKEN || "";
-const GOOGLE_SHEET_WEBHOOK_URL = process.env.GOOGLE_SHEET_WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbyYudZo8CGU6KeAQBpWh31v0e0iV4c5L0aVVfs77iaIzs_jjfeYAZsnPEOl4kaj8Bl7/exec";
+const GOOGLE_SHEET_WEBHOOK_URL = process.env.GOOGLE_SHEET_WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbzTd0qeuLo4SKEimRwflUOhJ8TAUBw5vvvwZlHwOQsMIGNz81aAwPoa0TNe19zoNcrO/exec";
 // =================================================================
 // 🛡️ HÀM BẢO VỆ: "MÁY QUÉT NÓI DỐI" TỪ GOOGLE
 // =================================================================
 async function pushToGoogleSheet(payload) {
   const response = await axios.post(GOOGLE_SHEET_WEBHOOK_URL, payload);
-  
+
   // Bắt lỗi 1: Nếu Google trả về mã HTML (Trang yêu cầu đăng nhập)
   if (typeof response.data === 'string' && response.data.toLowerCase().includes('<html')) {
     throw new Error("Lỗi phân quyền Google Sheet. Bạn phải Deploy Apps Script với quyền 'Who has access: Anyone'.");
   }
-  
+
   // Bắt lỗi 2: Nếu Code.gs chạy sập và tự sinh ra json báo lỗi
   if (response.data && response.data.result === "error") {
     throw new Error("Lỗi từ mã Google Apps Script: " + response.data.message);
