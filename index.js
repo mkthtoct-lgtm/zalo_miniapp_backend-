@@ -207,9 +207,16 @@ app.post("/api/khao-sat/submit", async (req, res) => {
       return res.status(400).json({ success: false, message: "Thiếu số điện thoại khách hàng" });
     }
 
+    // Xác định sheet dựa trên pathway
+    let sheet_name = "KHAO_SAT_HITO_V1"; // mặc định
+    if (data.pathway === "Ngoài nước (Du học)") {
+      sheet_name = "KHAO_SAT_HITO_V1"; // hoặc tên sheet khác nếu muốn
+    } else if (data.pathway === "Trong nước") {
+      sheet_name = "KHAO_SAT_HITO_V1"; // hoặc tên sheet khác nếu muốn
+    }
     const payloadToSheet = {
       ...data,
-      sheet_name: "KHAO_SAT_HITO_V1",
+      sheet_name: sheet_name,
     };
 
     await pushToGoogleSheet(payloadToSheet);
