@@ -32,7 +32,7 @@ const ZALO_SECRET_KEY_1 = process.env.ZALO_SECRET_KEY_1 || "";
 const ZALO_SECRET_KEY_2 = process.env.ZALO_SECRET_KEY_2 || "";
 const ZALO_DV_ID = process.env.ZALO_DV_ID || "";
 const STATIC_OA_ACCESS_TOKEN = process.env.STATIC_OA_ACCESS_TOKEN || "";
-const GOOGLE_SHEET_WEBHOOK_URL = process.env.GOOGLE_SHEET_WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbzPkNK7uL7d-VFyykEkcqwMYyZXD9NxQmRDU4-w2Ho2hFJ8E5meWCRxlX2JlJKsgeoz/exec";
+const GOOGLE_SHEET_WEBHOOK_URL = process.env.GOOGLE_SHEET_WEBHOOK_URL || "https://script.google.com/macros/s/AKfycbzVrPkHX_PZVumXy0mj0W3tuQrCFfrWw7fhurPL-qBdTbeS3bw7hwMnaxcxXIm3sWSQ/exec";
 // =================================================================
 // 🛡️ HÀM BẢO VỆ: "MÁY QUÉT NÓI DỐI" TỪ GOOGLE
 // =================================================================
@@ -144,10 +144,7 @@ app.post("/send-oa-message", async (req, res) => {
 app.post("/api/hito/submit", async (req, res) => {
   try {
     const data = req.body;
-    if (!data.sheet_name) {
-      data.sheet_name = "KHAO_SAT_HITO_V1";
-    }
-    await pushToGoogleSheet(data);
+    axios.post(GOOGLE_SHEET_WEBHOOK_URL, data).catch((err) => console.error("Lỗi khi đẩy lên Google Sheet:",err.message));
     return res.json({ success: true, message: "Backend đã nhận và đang xử lý" });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
@@ -203,29 +200,43 @@ app.post("/api/khao-sat/submit", async (req, res) => {
   try {
     const data = req.body;
 
+    // 1. Kiểm tra số điện thoại (Bắt buộc)
     if (!data.phone) {
       return res.status(400).json({ success: false, message: "Thiếu số điện thoại khách hàng" });
     }
 
-    // Xác định sheet dựa trên pathway
-    let sheet_name = "KHAO_SAT_HITO_V1"; // mặc định
-    if (data.pathway === "Ngoài nước (Du học)") {
-      sheet_name = "KHAO_SAT_HITO_V1"; // hoặc tên sheet khác nếu muốn
-    } else if (data.pathway === "Trong nước") {
-      sheet_name = "KHAO_SAT_HITO_V1"; // hoặc tên sheet khác nếu muốn
-    }
+    // 2. Chỉ định ĐÚNG duy nhất tên sheet này
+    // Việc này đảm bảo Webhook phía Google Script biết chính xác nơi cần ghi dữ liệu
+    const targetSheet = "KHAO_SAT_HITO_V1";
+
+    // 3. Xây dựng Payload sạch
     const payloadToSheet = {
-      ...data,
-      sheet_name: sheet_name,
+      // Giữ nguyên các trường từ frontend (name, email, school, phone, pathway...)
+      ...data, 
+      // Ghi đè hoặc chỉ định sheet_name để tránh đi nhầm vào HITO_DATA
+      sheet_name: targetSheet,
+      timestamp: new Date().toLocaleString("vi-VN")
     };
 
-    const sheetResponse = await pushToGoogleSheet(payloadToSheet);
-    console.log("📋 Google Sheet response:", JSON.stringify(sheetResponse));
+    // 4. Gửi sang Webhook (Async)
+    // Dùng axios để đẩy dữ liệu đi, không dùng await ở đây để trả kết quả cho User nhanh hơn
+    axios.post(GOOGLE_SHEET_WEBHOOK_URL, payloadToSheet)
+      .then(() => {
+        console.log(`✅ Đã đẩy dữ liệu thành công vào sheet: ${targetSheet}`);
+      })
+      .catch((err) => {
+        console.error("❌ Lỗi khi đẩy lên Google Sheet:", err.message);
+      });
 
-    return res.json({ success: true, message: "Hồ sơ Khảo sát đã được tiếp nhận thành công.", sheetResponse });
+    // 5. Phản hồi cho Frontend Zalo Mini App
+    return res.json({ 
+      success: true, 
+      message: "Gửi khảo sát thành công!" 
+    });
+
   } catch (err) {
-    console.error("❌ Lỗi khi đẩy Khảo Sát lên Google Sheet:", err.message);
-    return res.status(500).json({ success: false, error: err.message, message: err.message });
+    console.error("❌ Lỗi Server:", err.message);
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
